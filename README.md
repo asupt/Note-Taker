@@ -2,4 +2,4 @@
 
 starter files cloned from the project repo
 
-sample back-end adapted from activity 26
+some back-end adapted from activity 26

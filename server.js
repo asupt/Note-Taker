@@ -1,30 +1,59 @@
 const express = require('express');
-const api = require('./routes/index.js');
 const fs = require('fs');
-
-const PORT = process.env.PORT || 3001;
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Middleware for parsing JSON and urlencoded form data
+// Middleware to parse JSON bodies
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/api', api);
 
-app.use(express.static('public'));
+// HTML Routes
+app.get('/notes', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/notes.html'));
+});
 
-// GET Route for homepage
-app.get('/', (req, res) =>
-  res.sendFile('./public/index.js')
-);
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
-// GET Route for notes page
-app.get('/notes', (req, res) =>
-  res.sendFile('.public/notes.js')
-);
+// API Routes
+app.get('/api/notes', (req, res) => {
+  fs.readFile(path.join(__dirname, 'db/db.json'), 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Internal server error' });
+      return;
+    }
+    const notes = JSON.parse(data);
+    res.json(notes);
+  });
+});
 
-app.listen(PORT, () =>
-  console.log(`App listening at http://localhost:${PORT}`)
-);
+app.post('/api/notes', (req, res) => {
+    const newNote = req.body;
+    newNote.id = uuidv4(); // Generate a unique ID for the new note
+    fs.readFile(path.join(__dirname, 'db/db.json'), 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+        return;
+      }
+      const notes = JSON.parse(data);
+      notes.push(newNote);
+      fs.writeFile(path.join(__dirname, 'db/db.json'), JSON.stringify(notes), (err) => {
+        if (err) {
+          console.error(err);
+          res.status(500).json({ message: 'Internal server error' });
+          return;
+        }
+        res.json(newNote);
+      });
+    });
+  });
 
-module.exports = router;
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
